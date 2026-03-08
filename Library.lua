@@ -148,7 +148,7 @@ function Library:CreateLabel(Properties, IsHud)
         BackgroundTransparency = 1;
         Font = Library.Font;
         TextColor3 = Library.FontColor;
-        TextSize = 16;
+        TextSize = 13;
         TextStrokeTransparency = 0;
     });
 
@@ -1832,7 +1832,7 @@ do
         local ToggleOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
-            Size = UDim2.new(0, 13, 0, 13);
+            Size = UDim2.new(0, 11, 0, 11);
             ZIndex = 5;
             Parent = Container;
         });
@@ -2201,7 +2201,7 @@ do
         local DropdownOuter = Library:Create('Frame', {
             BackgroundColor3 = Color3.new(0, 0, 0);
             BorderColor3 = Color3.new(0, 0, 0);
-            Size = UDim2.new(1, -4, 0, 20);
+            Size = UDim2.new(1, -4, 0, 17);
             ZIndex = 5;
             Parent = Container;
         });
@@ -2949,7 +2949,8 @@ function Library:CreateWindow(...)
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
     if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
-    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(550, 600) end
+    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(400, 500) end
+
 
     if Config.Center then
         Config.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -3028,7 +3029,7 @@ function Library:CreateWindow(...)
     local TabArea = Library:Create('Frame', {
         BackgroundTransparency = 1;
         Position = UDim2.new(0, 8, 0, 8);
-        Size = UDim2.new(1, -16, 0, 21);
+        Size = UDim2.new(1, -16, 0, 18);
         ZIndex = 1;
         Parent = MainSectionInner;
     });
@@ -3043,8 +3044,8 @@ function Library:CreateWindow(...)
     local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16, 1, -38);
+        Position = UDim2.new(0, 8, 0, 27);
+        Size = UDim2.new(1, -16, 1, -35);
         ZIndex = 2;
         Parent = MainSectionInner;
     });
