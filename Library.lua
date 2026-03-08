@@ -23,6 +23,24 @@ local Options = {};
 getgenv().Toggles = Toggles;
 getgenv().Options = Options;
 
+local function GetScaleFactor()
+    local ScreenSize = workspace.CurrentCamera.ViewportSize
+    local BaseWidth = 1920
+    local BaseHeight = 1080
+    
+    -- Hanya scale down jika layar lebih kecil dari base
+    local scaleX = ScreenSize.X / BaseWidth
+    local scaleY = ScreenSize.Y / BaseHeight
+    local scale = math.min(scaleX, scaleY)
+    
+    -- PC/layar besar tidak berubah (scale >= 1 tidak diubah)
+    if scale >= 0.7 then
+        return 1
+    end
+    
+    return math.max(scale, 0.4) -- minimum 0.4 agar tidak terlalu kecil
+end
+
 local Library = {
     Registry = {};
     RegistryMap = {};
@@ -45,6 +63,11 @@ local Library = {
     Signals = {};
     ScreenGui = ScreenGui;
 };
+
+
+
+Library.ScaleFactor = GetScaleFactor()
+
 
 local RainbowStep = 0
 local Hue = 0
@@ -161,65 +184,62 @@ function Library:CreateLabel(Properties, IsHud)
     return Library:Create(_Instance, Properties);
 end;
 
-function Library:MakeDraggable(Instance, Cutoff)
-    Instance.Active = true;
+function Library:MakeDraggable(Inst, Cutoff)
+    Inst.Active = true
 
     local dragging = false
-    local dragStart = nil
-    local startPos = nil
+    local dragStartInputPos = nil
+    local dragStartFramePos = nil
 
-    Instance.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 
-        or Input.UserInputType == Enum.UserInputType.Touch then
+    local function getInputPos(Input)
+        if Input.UserInputType == Enum.UserInputType.Touch then
+            return Vector2.new(Input.Position.X, Input.Position.Y)
+        else
+            return Vector2.new(Mouse.X, Mouse.Y)
+        end
+    end
 
-            -- Ambil posisi input (support mouse & touch)
-            local inputPos = Input.UserInputType == Enum.UserInputType.Touch 
-                and Input.Position 
-                or Vector2.new(Mouse.X, Mouse.Y)
+    Inst.InputBegan:Connect(function(Input)
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1 
+        and Input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
 
-            local relativeY = inputPos.Y - Instance.AbsolutePosition.Y
+        local inputPos = getInputPos(Input)
+        local relY = inputPos.Y - Inst.AbsolutePosition.Y
 
-            if relativeY > (Cutoff or 40) then
-                return
+        if relY > (Cutoff or 40) then return end
+
+        dragging = true
+        dragStartInputPos = inputPos
+        dragStartFramePos = Inst.Position
+
+        Input.Changed:Connect(function()
+            if Input.UserInputState == Enum.UserInputState.End then
+                dragging = false
             end
-
-            dragging = true
-            dragStart = inputPos
-            startPos = Instance.Position
-
-            Input.Changed:Connect(function()
-                if Input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
+        end)
     end)
 
-    Instance.InputChanged:Connect(function(Input)
+    Inst.InputChanged:Connect(function(Input)
         if not dragging then return end
-
-        if Input.UserInputType == Enum.UserInputType.MouseMovement 
-        or Input.UserInputType == Enum.UserInputType.Touch then
-
-            local inputPos = Input.UserInputType == Enum.UserInputType.Touch 
-                and Input.Position 
-                or Vector2.new(Mouse.X, Mouse.Y)
-
-            local delta = Vector2.new(
-                inputPos.X - dragStart.X,
-                inputPos.Y - dragStart.Y
-            )
-
-            Instance.Position = UDim2.new(
-                startPos.X.Scale,
-                startPos.X.Offset + delta.X,
-                startPos.Y.Scale,
-                startPos.Y.Offset + delta.Y
-            )
+        if Input.UserInputType ~= Enum.UserInputType.MouseMovement 
+        and Input.UserInputType ~= Enum.UserInputType.Touch then
+            return
         end
+
+        local inputPos = getInputPos(Input)
+        local delta = inputPos - dragStartInputPos
+
+        Inst.Position = UDim2.new(
+            dragStartFramePos.X.Scale,
+            dragStartFramePos.X.Offset + delta.X,
+            dragStartFramePos.Y.Scale,
+            dragStartFramePos.Y.Offset + delta.Y
+        )
     end)
 
-    Instance.InputEnded:Connect(function(Input)
+    Inst.InputEnded:Connect(function(Input)
         if Input.UserInputType == Enum.UserInputType.MouseButton1 
         or Input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
@@ -2986,8 +3006,9 @@ function Library:CreateWindow(...)
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
-    if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175, 50) end
-    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(400, 500) end
+    local SF = Library.ScaleFactor
+    if typeof(Config.Position) ~= 'UDim2' then Config.Position = UDim2.fromOffset(175 * SF, 50 * SF) end
+    if typeof(Config.Size) ~= 'UDim2' then Config.Size = UDim2.fromOffset(400 * SF, 500 * SF) end
 
 
     if Config.Center then
@@ -3011,6 +3032,10 @@ function Library:CreateWindow(...)
     });
 
     Library:MakeDraggable(Outer, 25);
+
+    local UIScaleObj = Instance.new('UIScale')
+    UIScaleObj.Scale = Library.ScaleFactor
+    UIScaleObj.Parent = Outer
 
     local Inner = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
