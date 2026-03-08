@@ -175,14 +175,17 @@ function Library:MakeDraggable(Instance, Cutoff)
                 return;
             end;
 
-            while InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+            local isMobile = InputService.TouchEnabled and not InputService.MouseEnabled
+            while isMobile or InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
+                if isMobile and Input.UserInputType == Enum.UserInputType.Touch then
+                    if Input.UserInputState == Enum.UserInputState.End then break end
+                end
                 Instance.Position = UDim2.new(
                     0,
                     Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
                     0,
                     Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
                 );
-
                 RenderStepped:Wait();
             end;
         end;
@@ -2972,6 +2975,15 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
+    local screenSize = workspace.CurrentCamera.ViewportSize
+    if screenSize.X < 600 then
+        local scale = screenSize.X / 580
+        Outer.Size = UDim2.fromOffset(
+            math.floor(Config.Size.X.Offset * scale),
+            math.floor(Config.Size.Y.Offset * scale)
+        )
+    end
+
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
@@ -3041,12 +3053,18 @@ function Library:CreateWindow(...)
         Parent = TabArea;
     });
 
-    local TabContainer = Library:Create('Frame', {
+    local TabContainer = Library:Create('ScrollingFrame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        Position = UDim2.new(0, 8, 0, 27);
-        Size = UDim2.new(1, -16, 1, -35);
+        Position = UDim2.new(0, 8, 0, 30);
+        Size = UDim2.new(1, -16, 1, -38);
         ZIndex = 2;
+        ScrollBarThickness = 3;
+        ScrollBarImageColor3 = Library.AccentColor;
+        CanvasSize = UDim2.new(0, 0, 0, 0); -- auto update nanti
+        AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y;
+        TopImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
+        BottomImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
         Parent = MainSectionInner;
     });
     
