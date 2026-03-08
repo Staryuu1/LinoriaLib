@@ -164,33 +164,68 @@ end;
 function Library:MakeDraggable(Instance, Cutoff)
     Instance.Active = true;
 
+    local dragging = false
+    local dragStart = nil
+    local startPos = nil
+
     Instance.InputBegan:Connect(function(Input)
-        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-            local ObjPos = Vector2.new(
-                Mouse.X - Instance.AbsolutePosition.X,
-                Mouse.Y - Instance.AbsolutePosition.Y
-            );
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 
+        or Input.UserInputType == Enum.UserInputType.Touch then
 
-            if ObjPos.Y > (Cutoff or 40) then
-                return;
-            end;
+            -- Ambil posisi input (support mouse & touch)
+            local inputPos = Input.UserInputType == Enum.UserInputType.Touch 
+                and Input.Position 
+                or Vector2.new(Mouse.X, Mouse.Y)
 
-            local isMobile = InputService.TouchEnabled and not InputService.MouseEnabled
-            while isMobile or InputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do
-                if isMobile and Input.UserInputType == Enum.UserInputType.Touch then
-                    if Input.UserInputState == Enum.UserInputState.End then break end
+            local relativeY = inputPos.Y - Instance.AbsolutePosition.Y
+
+            if relativeY > (Cutoff or 40) then
+                return
+            end
+
+            dragging = true
+            dragStart = inputPos
+            startPos = Instance.Position
+
+            Input.Changed:Connect(function()
+                if Input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
                 end
-                Instance.Position = UDim2.new(
-                    0,
-                    Mouse.X - ObjPos.X + (Instance.Size.X.Offset * Instance.AnchorPoint.X),
-                    0,
-                    Mouse.Y - ObjPos.Y + (Instance.Size.Y.Offset * Instance.AnchorPoint.Y)
-                );
-                RenderStepped:Wait();
-            end;
-        end;
+            end)
+        end
     end)
-end;
+
+    Instance.InputChanged:Connect(function(Input)
+        if not dragging then return end
+
+        if Input.UserInputType == Enum.UserInputType.MouseMovement 
+        or Input.UserInputType == Enum.UserInputType.Touch then
+
+            local inputPos = Input.UserInputType == Enum.UserInputType.Touch 
+                and Input.Position 
+                or Vector2.new(Mouse.X, Mouse.Y)
+
+            local delta = Vector2.new(
+                inputPos.X - dragStart.X,
+                inputPos.Y - dragStart.Y
+            )
+
+            Instance.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+
+    Instance.InputEnded:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 
+        or Input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+end
 
 function Library:AddToolTip(InfoStr, HoverInstance)
     local X, Y = Library:GetTextBounds(InfoStr, Library.Font, 14);
@@ -2975,15 +3010,6 @@ function Library:CreateWindow(...)
         Parent = ScreenGui;
     });
 
-    local screenSize = workspace.CurrentCamera.ViewportSize
-    if screenSize.X < 600 then
-        local scale = screenSize.X / 580
-        Outer.Size = UDim2.fromOffset(
-            math.floor(Config.Size.X.Offset * scale),
-            math.floor(Config.Size.Y.Offset * scale)
-        )
-    end
-
     Library:MakeDraggable(Outer, 25);
 
     local Inner = Library:Create('Frame', {
@@ -3053,18 +3079,12 @@ function Library:CreateWindow(...)
         Parent = TabArea;
     });
 
-    local TabContainer = Library:Create('ScrollingFrame', {
+    local TabContainer = Library:Create('Frame', {
         BackgroundColor3 = Library.MainColor;
         BorderColor3 = Library.OutlineColor;
-        Position = UDim2.new(0, 8, 0, 30);
-        Size = UDim2.new(1, -16, 1, -38);
+        Position = UDim2.new(0, 8, 0, 27);
+        Size = UDim2.new(1, -16, 1, -35);
         ZIndex = 2;
-        ScrollBarThickness = 3;
-        ScrollBarImageColor3 = Library.AccentColor;
-        CanvasSize = UDim2.new(0, 0, 0, 0); -- auto update nanti
-        AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y;
-        TopImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
-        BottomImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png';
         Parent = MainSectionInner;
     });
     
