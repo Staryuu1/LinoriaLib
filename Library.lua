@@ -38,7 +38,7 @@ local function GetScaleFactor()
         return 1
     end
     
-    return math.max(scale, 0.4) -- minimum 0.4 agar tidak terlalu kecil
+    return math.max(scale, 0.5) -- minimum 0.4 agar tidak terlalu kecil
 end
 
 local Library = {
