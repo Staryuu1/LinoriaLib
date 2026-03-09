@@ -27,18 +27,16 @@ local function GetScaleFactor()
     local ScreenSize = workspace.CurrentCamera.ViewportSize
     local BaseWidth = 1920
     local BaseHeight = 1080
-    
-    -- Hanya scale down jika layar lebih kecil dari base
+
     local scaleX = ScreenSize.X / BaseWidth
     local scaleY = ScreenSize.Y / BaseHeight
     local scale = math.min(scaleX, scaleY)
-    
-    -- PC/layar besar tidak berubah (scale >= 1 tidak diubah)
-    if scale >= 0.7 then
+
+    if scale >= 0,7 then
         return 1
     end
-    
-    return math.max(scale, 0.5) -- minimum 0.4 agar tidak terlalu kecil
+
+    return math.clamp(scale, 0.6, 1)
 end
 
 local Library = {
