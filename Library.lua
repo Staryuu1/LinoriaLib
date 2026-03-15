@@ -2926,6 +2926,169 @@ function Library:SetWatermark(Text)
     Library.WatermarkText.Text = Text;
 end;
 
+function Library:ShowChangelog(Title, Entries)
+    -- Entries = { { version, date, changes = { {type, text} } } }
+    
+    local WINDOW_W = 320
+    local WINDOW_H = 400
+
+    local ChangelogOuter = Library:Create('Frame', {
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BorderSizePixel = 0,
+        Position = UDim2.fromScale(0.5, 0.5),
+        Size = UDim2.fromOffset(WINDOW_W, WINDOW_H),
+        ZIndex = 500,
+        Parent = ScreenGui,
+    })
+
+    local ChangelogInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor,
+        BorderColor3 = Library.AccentColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Size = UDim2.new(1, -2, 1, -2),
+        Position = UDim2.fromOffset(1, 1),
+        ZIndex = 501,
+        Parent = ChangelogOuter,
+    })
+
+    -- Header
+    Library:Create('Frame', {
+        BackgroundColor3 = Library.AccentColor,
+        BorderSizePixel = 0,
+        Size = UDim2.new(1, 0, 0, 2),
+        ZIndex = 502,
+        Parent = ChangelogInner,
+    })
+
+    Library:CreateLabel({
+        Position = UDim2.fromOffset(8, 4),
+        Size = UDim2.new(1, -40, 0, 20),
+        Text = Title or 'Changelog',
+        TextSize = 15,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 503,
+        Parent = ChangelogInner,
+    })
+
+    -- Close button
+    local CloseBtn = Library:Create('Frame', {
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BorderColor3 = Color3.new(0, 0, 0),
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -4, 0, 4),
+        Size = UDim2.fromOffset(18, 18),
+        ZIndex = 503,
+        Parent = ChangelogInner,
+    })
+
+    local CloseBtnInner = Library:Create('Frame', {
+        BackgroundColor3 = Library.MainColor,
+        BorderColor3 = Library.OutlineColor,
+        BorderMode = Enum.BorderMode.Inset,
+        Size = UDim2.new(1,0,1,0),
+        ZIndex = 504,
+        Parent = CloseBtn,
+    })
+
+    Library:CreateLabel({
+        Size = UDim2.new(1,0,1,0),
+        Text = 'X',
+        TextSize = 13,
+        ZIndex = 505,
+        Parent = CloseBtnInner,
+    })
+
+    Library:OnHighlight(CloseBtn, CloseBtn,
+        { BorderColor3 = 'AccentColor' },
+        { BorderColor3 = 'Black' }
+    )
+
+    -- Scrolling content
+    local ScrollFrame = Library:Create('ScrollingFrame', {
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        Position = UDim2.fromOffset(8, 30),
+        Size = UDim2.new(1, -16, 1, -38),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 3,
+        ScrollBarImageColor3 = Library.AccentColor,
+        TopImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png',
+        BottomImage = 'rbxasset://textures/ui/Scroll/scroll-middle.png',
+        ZIndex = 502,
+        Parent = ChangelogInner,
+    })
+
+    local ListLayout = Library:Create('UIListLayout', {
+        FillDirection = Enum.FillDirection.Vertical,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        Parent = ScrollFrame,
+    })
+
+    ListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
+        ScrollFrame.CanvasSize = UDim2.fromOffset(0, ListLayout.AbsoluteContentSize.Y + 8)
+    end)
+
+    local typeColor = {
+        ['+'] = Color3.fromRGB(100, 220, 100),  -- hijau = tambah
+        ['-'] = Color3.fromRGB(220, 80, 80),    -- merah = hapus
+        ['*'] = Color3.fromRGB(255, 200, 50),   -- kuning = fix/change
+        ['!'] = Color3.fromRGB(255, 80, 80),    -- merah terang = warning
+    }
+
+    -- Build entries
+    for _, entry in ipairs(Entries) do
+        -- Version header
+        local versionLabel = Library:CreateLabel({
+            Size = UDim2.new(1, 0, 0, 18),
+            Text = string.format('[%s] - %s', entry.version, entry.date),
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ZIndex = 503,
+            Parent = ScrollFrame,
+        })
+        versionLabel.TextColor3 = Library.AccentColor
+
+        -- Changes
+        for _, change in ipairs(entry.changes) do
+            local color = typeColor[change[1]] or Library.FontColor
+            local line = Library:CreateLabel({
+                Size = UDim2.new(1, -8, 0, 15),
+                Position = UDim2.fromOffset(8, 0),
+                Text = string.format('[%s] %s', change[1], change[2]),
+                TextSize = 12,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                TextWrapped = true,
+                ZIndex = 503,
+                Parent = ScrollFrame,
+            })
+            line.TextColor3 = color
+        end
+
+        -- Spacer antar versi
+        Library:Create('Frame', {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 4),
+            ZIndex = 502,
+            Parent = ScrollFrame,
+        })
+    end
+
+    -- Draggable
+    Library:MakeDraggable(ChangelogOuter, 28)
+
+    -- Close
+    CloseBtnInner.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 
+        or Input.UserInputType == Enum.UserInputType.Touch then
+            ChangelogOuter:Destroy()
+        end
+    end)
+
+    return ChangelogOuter
+end
+
 function Library:Notify(Text, Time)
     local XSize, YSize = Library:GetTextBounds(Text, Library.Font, 14);
 
