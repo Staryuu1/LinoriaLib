@@ -295,7 +295,33 @@ function Library:AddToolTip(InfoStr, HoverInstance)
 
         while IsHovering do
             RunService.Heartbeat:Wait()
-            Tooltip.Position = UDim2.fromOffset(Mouse.X + 15, Mouse.Y + 12)
+            local screenSize = workspace.CurrentCamera.ViewportSize
+            local tipSize = Tooltip.AbsoluteSize
+
+            local posX = Mouse.X + 15
+            local posY = Mouse.Y + 12
+
+            -- cek batas kanan
+            if posX + tipSize.X > screenSize.X then
+                posX = Mouse.X - tipSize.X - 5
+            end
+
+            -- cek batas bawah
+            if posY + tipSize.Y > screenSize.Y then
+                posY = Mouse.Y - tipSize.Y - 5
+            end
+
+            -- cek batas kiri (kalau sudah digeser ke kiri dan masih keluar)
+            if posX < 0 then
+                posX = 5
+            end
+
+            -- cek batas atas
+            if posY < 0 then
+                posY = 5
+            end
+
+            Tooltip.Position = UDim2.fromOffset(posX, posY)
         end
     end)
 
