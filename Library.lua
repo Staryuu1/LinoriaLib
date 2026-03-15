@@ -3053,10 +3053,16 @@ function Library:ShowChangelog(Title, Entries)
         -- Changes
         for _, change in ipairs(entry.changes) do
             local color = typeColor[change[1]] or Library.FontColor
+            local fullText = string.format('[%s] %s', change[1], change[2])
+            
+            -- Hitung tinggi text yang dibutuhkan
+            local lineWidth = 320 - 16 - 8 -- WINDOW_W - padding - indent
+            local _, textHeight = Library:GetTextBounds(fullText, Library.Font, 12, Vector2.new(lineWidth, math.huge))
+            textHeight = math.max(textHeight, 15) -- minimum 15
+            
             local line = Library:CreateLabel({
-                Size = UDim2.new(1, -8, 0, 15),
-                Position = UDim2.fromOffset(8, 0),
-                Text = string.format('[%s] %s', change[1], change[2]),
+                Size = UDim2.new(1, -8, 0, textHeight),
+                Text = fullText,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 TextWrapped = true,
