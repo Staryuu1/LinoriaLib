@@ -3070,6 +3070,14 @@ function Library:ShowChangelog(Title, Entries)
                 Parent = ScrollFrame,
             })
             line.TextColor3 = color
+
+            task.spawn(function()
+                task.wait(0.1)
+                local availableWidth = line.AbsoluteSize.X
+                local _, textHeight = Library:GetTextBounds(fullText, Library.Font, 12, Vector2.new(availableWidth, math.huge))
+                textHeight = math.max(textHeight, 15)
+                line.Size = UDim2.new(1, -8, 0, textHeight)
+            end)
         end
 
         -- Spacer antar versi
