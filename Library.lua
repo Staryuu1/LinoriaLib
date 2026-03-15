@@ -3055,10 +3055,10 @@ function Library:ShowChangelog(Title, Entries)
             local color = typeColor[change[1]] or Library.FontColor
             local fullText = string.format('[%s] %s', change[1], change[2])
             
-            -- Hitung tinggi text yang dibutuhkan
-            local lineWidth = 320 - 16 - 8 -- WINDOW_W - padding - indent
+            -- 320 width - 16 (scroll padding) - 8 (indent) - 8 (scroll margin) - 10 (scrollbar) - 8 (extra safety)
+            local lineWidth = WINDOW_W - 50
             local _, textHeight = Library:GetTextBounds(fullText, Library.Font, 12, Vector2.new(lineWidth, math.huge))
-            textHeight = math.max(textHeight, 15) -- minimum 15
+            textHeight = math.max(textHeight, 15)
             
             local line = Library:CreateLabel({
                 Size = UDim2.new(1, -8, 0, textHeight),
