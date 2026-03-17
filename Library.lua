@@ -3099,56 +3099,57 @@ function Library:ShowChangelog(Title, Entries)
 end
 
 function Library:SendContact(Type, Message, URL)
-    local Cooldown = 60 -- Cooldown in seconds
+    local Cooldown = 300
     local CurrentTime = tick()
 
-    -- Anti-Spam Check
     if (CurrentTime - LastSentTime) < Cooldown then
         local WaitTime = math.ceil(Cooldown - (CurrentTime - LastSentTime))
-        return Library:Notify("Please wait " .. WaitTime .. " more seconds before sending another message.", 3)
+        return Library:Notify("Please wait " .. WaitTime .. " seconds before reporting again.", 3)
     end
 
-    -- Prepare JSON Body
+    -- Pastikan URL menggunakan Proxy jika Anda masih terkena Malicious Invoke
+    -- Beberapa executor memblokir direct link discord.com
+    local FinalURL = URL:gsub("https://discord.com", "https://hooks.hyra.io")
+
     local Data = {
+        ["content"] = nil,
         ["embeds"] = {{
             ["title"] = "📩 New " .. Type .. " Report",
-            ["description"] = Message,
-            ["color"] = (Type == "Bug" and 16711680 or 65280), -- Red for Bug, Green for Suggestion
+            ["description"] = "```" .. Message .. "```", -- Gunakan code block agar lebih aman
+            ["color"] = (Type == "Bug" and 16711680 or 65280),
             ["fields"] = {
-                {["name"] = "Player", ["value"] = LocalPlayer.Name .. " (" .. LocalPlayer.UserId .. ")", ["inline"] = true},
-                {["name"] = "Game ID", ["value"] = tostring(game.PlaceId), ["inline"] = true}
+                {["name"] = "User", ["value"] = game.Players.LocalPlayer.Name, ["inline"] = true},
+                {["name"] = "ID", ["value"] = tostring(game.Players.LocalPlayer.UserId), ["inline"] = true}
             },
-            ["footer"] = { ["text"] = "Direct Webhook Sent" },
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
-    
-    local body = HttpService:JSONEncode(Data)
 
-    -- Universal Request (No Proxy Needed for most executors)
     local success, err = pcall(function()
-        local requestFunc = syn and syn.request 
-            or http and http.request 
-            or request 
-            or (HttpService and HttpService.RequestAsync)
-
-        if not requestFunc then
-            error("No valid request function found in your executor")
+        -- Gunakan fungsi request universal
+        local request = (syn and syn.request) or (http and http.request) or request or (http_request)
+        
+        if request then
+            request({
+                Url = FinalURL,
+                Method = "POST",
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
+                Body = HttpService:JSONEncode(Data)
+            })
+        else
+            -- Fallback jika executor tidak punya request function kustom
+            HttpService:PostAsync(FinalURL, HttpService:JSONEncode(Data))
         end
-
-        requestFunc({
-            Url = URL,
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = body
-        })
     end)
 
     if success then
         LastSentTime = CurrentTime 
-        Library:Notify("Message sent successfully to the developer!", 3)
+        Library:Notify("Report sent successfully!", 3)
     else
-        Library:Notify("Failed to send message: " .. tostring(err), 5)
+        warn("Webhook Error: " .. tostring(err))
+        Library:Notify("Failed to send report. Check F9 Console.", 5)
     end
 end
 
