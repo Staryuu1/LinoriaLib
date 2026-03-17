@@ -5,9 +5,11 @@ local Teams = game:GetService('Teams');
 local Players = game:GetService('Players');
 local RunService = game:GetService('RunService')
 local TweenService = game:GetService('TweenService');
+local HttpService = game:GetService('HttpService')
 local RenderStepped = RunService.RenderStepped;
 local LocalPlayer = Players.LocalPlayer;
 local Mouse = LocalPlayer:GetMouse();
+local LastSentTime = 0
 
 local ProtectGui = protectgui or (syn and syn.protect_gui) or (function() end);
 
@@ -3094,6 +3096,43 @@ function Library:ShowChangelog(Title, Entries)
     end)
 
     return ChangelogOuter
+end
+
+function Library:SendContact(Type, Message, URL)
+    local Cooldown = 300 -- Cooldown in seconds
+    local CurrentTime = tick()
+
+    -- Anti-Spam Check
+    if (CurrentTime - LastSentTime) < Cooldown then
+        local WaitTime = math.ceil(Cooldown - (CurrentTime - LastSentTime))
+        return Library:Notify("Please wait " .. WaitTime .. " more seconds before sending another message.", 3)
+    end
+
+    -- Prepare Webhook Data
+    local Data = {
+        ["embeds"] = {{
+            ["title"] = "📩 New " .. Type .. " Report",
+            ["description"] = Message,
+            ["color"] = (Type == "Bug" and 16711680 or 65280), -- Red for Bug, Green for Suggestion
+            ["fields"] = {
+                {["name"] = "Player", ["value"] = LocalPlayer.Name .. " (" .. LocalPlayer.UserId .. ")", ["inline"] = true},
+                {["name"] = "Game ID", ["value"] = tostring(game.PlaceId), ["inline"] = true}
+            },
+            ["timestamp"] = DateTime.now():ToIsoDate()
+        }}
+    }
+
+
+    local success, err = pcall(function()
+        return HttpService:PostAsync(URL, HttpService:JSONEncode(Data))
+    end)
+
+    if success then
+        LastSentTime = CurrentTime
+        Library:Notify("Message sent successfully to the developer!", 3)
+    else
+        Library:Notify("Failed to send message: " .. tostring(err), 5)
+    end
 end
 
 function Library:Notify(Text, Time)
