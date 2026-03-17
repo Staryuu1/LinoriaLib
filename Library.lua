@@ -3107,10 +3107,6 @@ function Library:SendContact(Type, Message, URL)
         return Library:Notify("Please wait " .. WaitTime .. " seconds before reporting again.", 3)
     end
 
-    -- Pastikan URL menggunakan Proxy jika Anda masih terkena Malicious Invoke
-    -- Beberapa executor memblokir direct link discord.com
-    local FinalURL = URL:gsub("https://discord.com", "https://hooks.hyra.io")
-
     local Data = {
         ["content"] = nil,
         ["embeds"] = {{
@@ -3131,7 +3127,7 @@ function Library:SendContact(Type, Message, URL)
         
         if request then
             request({
-                Url = FinalURL,
+                Url = URL,
                 Method = "POST",
                 Headers = {
                     ["Content-Type"] = "application/json"
@@ -3139,8 +3135,8 @@ function Library:SendContact(Type, Message, URL)
                 Body = HttpService:JSONEncode(Data)
             })
         else
-            -- Fallback jika executor tidak punya request function kustom
-            HttpService:PostAsync(FinalURL, HttpService:JSONEncode(Data))
+        print("cant send message")
+        Library:Notify("Failed to send report", 5)
         end
     end)
 
