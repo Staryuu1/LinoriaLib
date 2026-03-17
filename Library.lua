@@ -3098,57 +3098,6 @@ function Library:ShowChangelog(Title, Entries)
     return ChangelogOuter
 end
 
-function Library:SendContact(Type, Message, URL)
-    local Cooldown = 300
-    local CurrentTime = tick()
-
-    if (CurrentTime - LastSentTime) < Cooldown then
-        local WaitTime = math.ceil(Cooldown - (CurrentTime - LastSentTime))
-        return Library:Notify("Please wait " .. WaitTime .. " seconds before reporting again.", 3)
-    end
-
-    local Data = {
-        ["content"] = nil,
-        ["embeds"] = {{
-            ["title"] = "📩 New " .. Type .. " Report",
-            ["description"] = "```" .. Message .. "```", -- Gunakan code block agar lebih aman
-            ["color"] = (Type == "Bug" and 16711680 or 65280),
-            ["fields"] = {
-                {["name"] = "User", ["value"] = game.Players.LocalPlayer.Name, ["inline"] = true},
-                {["name"] = "ID", ["value"] = tostring(game.Players.LocalPlayer.UserId), ["inline"] = true}
-            },
-            ["timestamp"] = DateTime.now():ToIsoDate()
-        }}
-    }
-
-    local success, err = pcall(function()
-        -- Gunakan fungsi request universal
-        local request = (syn and syn.request) or (http and http.request) or request or (http_request)
-        
-        if request then
-            request({
-                Url = URL,
-                Method = "POST",
-                Headers = {
-                    ["Content-Type"] = "application/json"
-                },
-                Body = HttpService:JSONEncode(Data)
-            })
-        else
-        print("cant send message")
-        Library:Notify("Failed to send report", 5)
-        end
-    end)
-
-    if success then
-        LastSentTime = CurrentTime 
-        Library:Notify("Report sent successfully!", 3)
-    else
-        warn("Webhook Error: " .. tostring(err))
-        Library:Notify("Failed to send report. Check F9 Console.", 5)
-    end
-end
-
 function Library:Notify(Text, Time)
     local XSize, YSize = Library:GetTextBounds(Text, Library.Font, 14);
 
