@@ -3099,7 +3099,7 @@ function Library:ShowChangelog(Title, Entries)
 end
 
 function Library:SendContact(Type, Message, URL)
-    local Cooldown = 300 -- Cooldown in seconds
+    local Cooldown = 60 -- Cooldown in seconds
     local CurrentTime = tick()
 
     -- Anti-Spam Check
@@ -3108,7 +3108,7 @@ function Library:SendContact(Type, Message, URL)
         return Library:Notify("Please wait " .. WaitTime .. " more seconds before sending another message.", 3)
     end
 
-    -- Prepare Webhook Data
+    -- Prepare JSON Body
     local Data = {
         ["embeds"] = {{
             ["title"] = "📩 New " .. Type .. " Report",
@@ -3118,17 +3118,34 @@ function Library:SendContact(Type, Message, URL)
                 {["name"] = "Player", ["value"] = LocalPlayer.Name .. " (" .. LocalPlayer.UserId .. ")", ["inline"] = true},
                 {["name"] = "Game ID", ["value"] = tostring(game.PlaceId), ["inline"] = true}
             },
+            ["footer"] = { ["text"] = "Direct Webhook Sent" },
             ["timestamp"] = DateTime.now():ToIsoDate()
         }}
     }
+    
+    local body = HttpService:JSONEncode(Data)
 
-
+    -- Universal Request (No Proxy Needed for most executors)
     local success, err = pcall(function()
-        return HttpService:PostAsync(URL, HttpService:JSONEncode(Data))
+        local requestFunc = syn and syn.request 
+            or http and http.request 
+            or request 
+            or (HttpService and HttpService.RequestAsync)
+
+        if not requestFunc then
+            error("No valid request function found in your executor")
+        end
+
+        requestFunc({
+            Url = URL,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body
+        })
     end)
 
     if success then
-        LastSentTime = CurrentTime
+        LastSentTime = CurrentTime 
         Library:Notify("Message sent successfully to the developer!", 3)
     else
         Library:Notify("Failed to send message: " .. tostring(err), 5)
