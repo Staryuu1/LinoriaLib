@@ -207,7 +207,8 @@ function Library:CreateMain(opts)
     Window.Scale = make('UIScale', { Scale = 1 }, main)
     local function fitScreen()
         local size = gui.AbsoluteSize
-        Window.Scale.Scale = math.min(1, math.max(0.1, (size.X - 16) / 629), math.max(0.1, (size.Y - 16) / 359))
+        local preferred = UserInputService.TouchEnabled and 0.8 or math.clamp(size.Y / 720, 1.15, 1.6)
+        Window.Scale.Scale = math.min(preferred, math.max(0.1, (size.X - 24) / 629), math.max(0.1, (size.Y - 24) / 359))
         local scale = Window.Scale.Scale
         local halfWidth, halfHeight = 629 * scale / 2, 359 * scale / 2
         local position = main.Position
@@ -634,7 +635,8 @@ function Library:CreatePage(opts)
         local sec = { _order = 0, Name = sectionName, _controls = {}, _window = window }
 
         local box = make("Frame", {
-            Name = sectionName .. "_Section", Size = UDim2.new(1, -5, 0, 100),
+            Name = sectionName .. "_Section", Size = UDim2.new(1, -5, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = Theme.BG3, LayoutOrder = #Page.Sections + 1,
         }, list)
         corner(box)
@@ -648,10 +650,8 @@ function Library:CreatePage(opts)
             NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.5, 0),
             NumberSequenceKeypoint.new(0.51, 0.02), NumberSequenceKeypoint.new(1, 1) }) }, underline)
 
-        local layout = make("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3) }, box)
-        layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            box.Size = UDim2.new(1, -5, 0, layout.AbsoluteContentSize.Y + 5)
-        end)
+        make("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 3) }, box)
+        make('UIPadding', { PaddingBottom = UDim.new(0, 5) }, box)
         sec._frame = box
         table.insert(Page.Sections, sec)
 
