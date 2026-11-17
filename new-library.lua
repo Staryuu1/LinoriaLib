@@ -400,7 +400,7 @@ function Library:_Filter()
                 local options = row.Options
                 local caption = page.Name .. ' ' .. page.Title .. ' ' .. section.Name .. ' '
                     .. tostring(options.Title or '') .. ' ' .. tostring(options.Desc or '')
-                row.Holder.Visible = not searching or caption:lower():find(query, 1, true) ~= nil
+                    row.Holder.Visible = searching and caption:lower():find(query, 1, true) ~= nil or not searching and not section._collapsed
                 if row.Holder.Visible then count = count + 1 end
             end
             section._frame.Parent = searching and self._searchResults or page._list
@@ -630,9 +630,11 @@ function Library:CreatePage(opts)
     table.insert(self.Pages, Page)
     if #self.Pages == 1 then Page:Select() end
 
-    function Page:CreateSection(sectionName)
+    function Page:CreateSection(sectionName, sectionOptions)
         sectionName = tostring(sectionName)
-        local sec = { _order = 0, Name = sectionName, _controls = {}, _window = window }
+        local startCollapsed = sectionOptions == true
+            or type(sectionOptions) == 'table' and sectionOptions.Collapsed == true
+        local sec = { _order = 0, Name = sectionName, _controls = {}, _window = window, _collapsed = startCollapsed }
 
         local box = make("Frame", {
             Name = sectionName .. "_Section", Size = UDim2.new(1, -5, 0, 0),
@@ -654,7 +656,30 @@ function Library:CreatePage(opts)
         make('UIPadding', { PaddingBottom = UDim.new(0, 5) }, box)
         sec._frame = box
         table.insert(Page.Sections, sec)
-
+        
+        -- Click the heading to collapse or expand this section.
+        local arrow = make("ImageLabel", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, -1),
+            Size = UDim2.new(0, 12, 0, 12), BackgroundTransparency = 1, Image = ICON.Arrow,
+            ImageColor3 = Theme.Text, Rotation = sec._collapsed and 0 or 90 }, topsec)
+        local headingButton = make("TextButton", { Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1, Text = "" }, topsec)
+        function sec:SetCollapsed(value)
+            value = not not value
+            if sec._collapsed == value then return end
+            sec._collapsed = value
+            tween(arrow, { Rotation = value and 0 or 90 }, 0.15)
+            window:_Filter()
+            if window.SectionChanged then safe(window.SectionChanged) end
+        end
+        function sec:IsCollapsed() return sec._collapsed end
+        headingButton.MouseButton1Click:Connect(function() sec:SetCollapsed(not sec._collapsed) end)
+        local sectionFlag = 'UI_Section_' .. name .. '_' .. sectionName
+        if not window.Flags[sectionFlag] then
+            register(window, { Flag = sectionFlag }, {
+                Get = function() return sec._collapsed end,
+                Set = function(_, value) sec:SetCollapsed(value) end,
+            }, 'Toggle', function(value) return type(value) == 'boolean' end, nil)
+        end
         -- ---------------------------------------------------- Toggle
         function sec:CreateToggle(o, callback)
             o = o or {}
@@ -872,9 +897,20 @@ function Library:CreatePage(opts)
 
             local selected = multi and {} or nil
             local open = false
+            local resizeToken = 0
+            scroll.Visible = false
             local function resize()
+                resizeToken = resizeToken + 1
+                local token = resizeToken
                 local height = open and (30 + math.min(#items, 6) * 22) or 24
-                tween(holder, { Size = UDim2.new(1, 0, 0, height) }, 0.15)
+                if open then scroll.Visible = true end
+                local animation = tween(holder, { Size = UDim2.new(1, 0, 0, height) }, 0.15)
+                animation.Completed:Connect(function()
+                    -- Snap to the final state so an interrupted tween cannot leave rows peeking out.
+                    if token ~= resizeToken then return end
+                    holder.Size = UDim2.new(1, 0, 0, height)
+                    scroll.Visible = open
+                end)
             end
 
             local function refreshLabel()
